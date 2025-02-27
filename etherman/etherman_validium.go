@@ -6,6 +6,7 @@ import (
 
 	dataCommitteeClient "github.com/0xPolygon/cdk-data-availability/client"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability"
+	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability/avail"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability/datacommittee"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/etherman/smartcontracts/dataavailabilityprotocol"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/etherman/smartcontracts/etrogvalidiumpolygonzkevm"
@@ -134,6 +135,13 @@ func (ev *EthermanValidium) newDataAvailabilityClient(translator translator.Tran
 			ev.Cfg.Validium.RetryOnDACErrorInterval.Duration,
 			ev.Cfg.Validium.RateLimit,
 		)
+		if err != nil {
+			return nil, err
+		}
+	case string(dataavailability.Avail):
+		dacAddr := ev.DataAvailabilityProtocolAddress
+
+		daBackend, err = avail.New(ev.Cfg.L1URL, dacAddr, ev.Cfg.AvailDAConfig)
 		if err != nil {
 			return nil, err
 		}

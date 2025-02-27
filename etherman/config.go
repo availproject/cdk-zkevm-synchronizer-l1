@@ -3,6 +3,7 @@ package etherman
 import (
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/config/types"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability"
+	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability/avail"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/translator"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,6 +17,7 @@ type Config struct {
 	PararellBlockRequest bool           `mapstructure:"pararellBlockRequest"`
 	Contracts            ContractConfig `mapstructure:"Contracts"`
 	Validium             ValidiumConfig `mapstructure:"Validium"`
+	AvailDAConfig        avail.Config   `mapstructure:"AvailDAConfig"`
 }
 
 type ValidiumConfig struct {
