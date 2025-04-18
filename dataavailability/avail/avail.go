@@ -2,8 +2,11 @@ package avail
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/log"
@@ -92,6 +95,79 @@ func New(l1RPCURL string, availattestationContractAddress common.Address, config
 
 func (a *AvailBackend) Init() error {
 	return nil
+}
+
+func (a *AvailBackend) PostSequence(ctx context.Context, batchesData [][]byte) ([]byte, error) {
+	sequence, err := byteArrayArguments.Pack(batchesData)
+	if err != nil {
+		return nil, fmt.Errorf("cannot pack data:%w", err)
+	}
+
+	log.Infof("AvailDAInfo: ⚡️ Prepared data for Avail: %d bytes", len(sequence))
+
+	txDetails, err := a.submitData(sequence)
+	if err != nil {
+		return nil, fmt.Errorf("cannot submit data:%+v", err)
+	}
+
+	var input *BridgeAPIResponse
+	waitTime := time.Duration(a.timeout) * time.Second
+	retryCount := BridgeApiRetryCount
+	for retryCount > 0 {
+		log.Infof("AvailDAInfo: ℹ️ Bridge API URL: %v", fmt.Sprintf("%s/eth/proof/%#x?index=%d", a.bridgeApi, txDetails.BlockHash.String(), txDetails.TxIndex))
+		resp, err := http.Get(fmt.Sprintf("%s/eth/proof/%#x?index=%d", a.bridgeApi, txDetails.BlockHash.String(), txDetails.TxIndex))
+		if err == nil && resp.StatusCode == 200 {
+			log.Infof("AvailDAInfo: ✅ Attestation proof received")
+			data, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("cannot read body:%v", err)
+			}
+			input = &BridgeAPIResponse{}
+			err = json.Unmarshal(data, input)
+			if err != nil {
+				return nil, fmt.Errorf("cannot unmarshal data:%v", err)
+			}
+			break
+
+		}
+		log.Infof("AvailDAWarn: ⏳ Attestation proof RPC errored, response code: %v, retry count left: %v, retrying in %v", resp.StatusCode, retryCount, waitTime)
+
+		defer resp.Body.Close()
+
+		retryCount--
+		time.Sleep(waitTime)
+	}
+
+	if input == nil {
+		return nil, fmt.Errorf("didn't get any proof from bridge api:%+v", err)
+	}
+
+	log.Infof("AvailDAInfo: 🔗 Attestation proof received: %+v", input)
+
+	var dataRootProof [][32]byte
+	for _, hash := range input.DataRootProof {
+		dataRootProof = append(dataRootProof, hash)
+	}
+	var leafProof [][32]byte
+	for _, hash := range input.LeafProof {
+		leafProof = append(leafProof, hash)
+	}
+	merkleProofInput := &MerkleProofInput{
+		DataRootProof: dataRootProof,
+		LeafProof:     leafProof,
+		RangeHash:     input.RangeHash,
+		DataRootIndex: input.DataRootIndex,
+		BlobRoot:      input.BlobRoot,
+		BridgeRoot:    input.BridgeRoot,
+		Leaf:          input.Leaf,
+		LeafIndex:     input.LeafIndex,
+	}
+	log.Infof("AvailDAInfo: 🔗 Merkle proof input: %+v", merkleProofInput)
+	ret, err := merkleProofInput.EnodeToBinary()
+	if err != nil {
+		return nil, fmt.Errorf("cannot encode data:%v", err)
+	}
+	return ret, nil
 }
 
 func (a *AvailBackend) GetSequence(ctx context.Context, batchHashes []common.Hash, dataAvailabilityMessage []byte) ([][]byte, error) {
