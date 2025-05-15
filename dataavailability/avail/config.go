@@ -13,6 +13,8 @@ type Config struct {
 	WsApiUrl   string `mapstructure:"ws_api_url"`
 	HttpApiUrl string `mapstructure:"http_api_url"`
 
+	MigrationBatchPoint uint64 `mapstructure:"migration_batch_point"`
+
 	BridgeEnabled bool   `mapstructure:"bridge_enabled"`
 	BridgeApiUrl  string `mapstructure:"bridge_api_url"`
 	BridgeTimeout int    `mapstructure:"bridge_timeout"`

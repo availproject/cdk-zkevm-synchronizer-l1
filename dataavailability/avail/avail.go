@@ -2,12 +2,12 @@ package avail
 
 import (
 	"context"
-
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability/avail/availattestation"
@@ -45,6 +45,8 @@ type AvailBackend struct {
 	appId   int
 
 	httpApi string
+
+	migrationBatchPoint uint64
 
 	bridgeEnabled       bool
 	bridgeApi           string
@@ -93,6 +95,8 @@ func New(l1RPCURL string, availattestationContractAddress common.Address, config
 		address: acc.SS58Address(AvailNetworkID),
 		appId:   appId,
 		httpApi: config.HttpApiUrl,
+
+		migrationBatchPoint: config.MigrationBatchPoint,
 
 		bridgeEnabled:       config.BridgeEnabled,
 		attestationContract: attestationContract,
@@ -187,7 +191,13 @@ func (a *AvailBackend) PostSequence(ctx context.Context, batchesData [][]byte) (
 	return resp, nil
 }
 
-func (a *AvailBackend) GetSequence(ctx context.Context, batchHashes []common.Hash, dataAvailabilityMessage []byte) ([][]byte, error) {
+func (a *AvailBackend) GetSequence(ctx context.Context, batchNums []uint64, batchHashes []common.Hash, dataAvailabilityMessage []byte) ([][]byte, error) {
+
+	maxBatchNum := slices.Max(batchNums)
+
+	if a.migrationBatchPoint <= maxBatchNum {
+		// In this case, need to request for New AvailDA blob mapping with history blob ref posted to PolygonValidiumEtrog contract while using DAC
+	}
 
 	var resp [][]byte
 	if a.bridgeEnabled {

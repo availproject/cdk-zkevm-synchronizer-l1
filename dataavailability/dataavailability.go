@@ -97,7 +97,7 @@ func (d *DataAvailability) GetBatchL2Data(batchNums []uint64, batchHashes []comm
 				}
 			}
 		case External:
-			batchl2dataRaw, err := d.backend.GetSequence(d.ctx, batchHashes, dataAvailabilityMessage)
+			batchl2dataRaw, err := d.backend.GetSequence(d.ctx, batchNums, batchHashes, dataAvailabilityMessage)
 			if err != nil {
 				log.Warnf(failedDataRetrievalTemplate, batchNums, err.Error())
 				return nil, err
