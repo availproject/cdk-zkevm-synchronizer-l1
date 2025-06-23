@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+
+	s3_storage_service "github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability/avail/s3StorageService"
 )
 
 type Config struct {
@@ -16,6 +18,9 @@ type Config struct {
 	BridgeEnabled bool   `mapstructure:"bridge_enabled"`
 	BridgeApiUrl  string `mapstructure:"bridge_api_url"`
 	BridgeTimeout int    `mapstructure:"bridge_timeout"`
+
+	// Fallback
+	FallbackS3ServiceConfig s3_storage_service.S3StorageServiceConfig `koanf:"FallbackS3ServiceConfig"`
 }
 
 func (c *Config) GetConfig(configFileName string) error {

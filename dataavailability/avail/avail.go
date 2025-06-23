@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 
+	s3_storage_service "github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability/avail/s3StorageService"
 	"github.com/availproject/avail-go-sdk/primitives"
 	avail_sdk "github.com/availproject/avail-go-sdk/sdk"
 	"github.com/vedhavyas/go-subkey/v2"
@@ -50,6 +51,9 @@ type AvailBackend struct {
 	bridgeApi           string
 	attestationContract *availattestation.Availattestation
 	bridgeTimeout       int
+
+	// S3 Fallback service
+	fallbackS3Service *s3_storage_service.S3StorageService
 }
 
 func New(l1RPCURL string, availattestationContractAddress common.Address, config Config) (*AvailBackend, error) {
@@ -85,6 +89,14 @@ func New(l1RPCURL string, availattestationContractAddress common.Address, config
 		log.Errorf("AvailDAError: ⚠️ unable to generate keypair from given seed")
 	}
 
+	var fallbackS3Service *s3_storage_service.S3StorageService
+	if config.FallbackS3ServiceConfig.Enable {
+		fallbackS3Service, err = s3_storage_service.NewS3StorageService(config.FallbackS3ServiceConfig)
+		if err != nil {
+			return nil, fmt.Errorf("AvailDAError: unable to intialize s3 storage service for fallback, %w. %w", err, ErrAvailDAClientInit)
+		}
+	}
+
 	log.Infof("AvailDAInfo: 🔑 Using KeyringPair with address %v", acc.SS58Address(AvailNetworkID))
 	log.Infof("AvailDAInfo:✌️ Avail backend client is created successfully")
 	return &AvailBackend{
@@ -98,6 +110,8 @@ func New(l1RPCURL string, availattestationContractAddress common.Address, config
 		attestationContract: attestationContract,
 		bridgeApi:           config.BridgeApiUrl,
 		bridgeTimeout:       config.BridgeTimeout,
+
+		fallbackS3Service: fallbackS3Service,
 	}, nil
 }
 
@@ -119,6 +133,7 @@ func (a *AvailBackend) PostSequence(ctx context.Context, batchesData [][]byte) (
 	}
 
 	var resp []byte
+	var dataCommitment common.Hash
 	if a.bridgeEnabled {
 		var input *BridgeAPIResponse
 		waitTime := time.Duration(a.bridgeTimeout) * time.Second
@@ -177,19 +192,37 @@ func (a *AvailBackend) PostSequence(ctx context.Context, batchesData [][]byte) (
 		if err != nil {
 			return nil, fmt.Errorf("cannot encode data:%v", err)
 		}
+		dataCommitment = merkleProofInput.Leaf
 	} else {
-		var blobPointer BlobPointer = BlobPointer{BLOBPOINTER_VERSION0, txDetails.BlockNumber, txDetails.TxIndex, crypto.Keccak256Hash(sequence)}
+		dataCommitment = crypto.Keccak256Hash(sequence)
+		var blobPointer BlobPointer = BlobPointer{BLOBPOINTER_VERSION0, txDetails.BlockNumber, txDetails.TxIndex, dataCommitment}
 		resp, err = blobPointer.MarshalToBinary()
 		if err != nil {
 			return nil, fmt.Errorf("cannot encide blobPointer: %v", err)
 		}
+
 	}
+
+	// fallback
+	if a.fallbackS3Service != nil {
+		err := a.fallbackS3Service.Put(ctx, sequence, 0, dataCommitment)
+		if err != nil {
+			log.Error("AvailDAError: failed to put data on s3 storage service: %w", err)
+		}
+	}
+
 	return resp, nil
 }
 
 func (a *AvailBackend) GetSequence(ctx context.Context, batchHashes []common.Hash, dataAvailabilityMessage []byte) ([][]byte, error) {
 
 	var resp [][]byte
+	var blobData []byte
+	var blockNumber uint32
+	var index uint32
+	var indexType IndexType
+	var dataCommitment common.Hash
+
 	if a.bridgeEnabled {
 		var inp *MerkleProofInput
 		inp.DecodeFromBinary(dataAvailabilityMessage)
@@ -197,40 +230,46 @@ func (a *AvailBackend) GetSequence(ctx context.Context, batchHashes []common.Has
 		if err != nil {
 			return nil, fmt.Errorf("cannot get attestation data from contract:%v", err)
 		}
-		blobData, err := a.getData(attestationData.BlockNumber, uint32(attestationData.LeafIndex.Uint64()), LeafIndex)
-		if err != nil {
-			return nil, fmt.Errorf("cannot get data from block:%v", err)
-		}
-
-		unpackedData, err := byteArrayArguments.Unpack(blobData)
-		if err != nil {
-			return nil, fmt.Errorf("cannot decode data:%v", err)
-		}
-		var ok bool
-		resp, ok = unpackedData[0].([][]byte)
-		if !ok {
-			return nil, fmt.Errorf("cannot parse data")
-		}
+		blockNumber = attestationData.BlockNumber
+		index = uint32(attestationData.LeafIndex.Uint64())
+		indexType = LeafIndex
+		dataCommitment = inp.Leaf
 	} else {
 		var blobPointer BlobPointer
 		blobPointer.UnmarshalFromBinary(dataAvailabilityMessage)
-		blobData, err := a.getData(blobPointer.BlockHeight, blobPointer.ExtrinsicIndex, TxIndex)
+		blockNumber = blobPointer.BlockHeight
+		index = blobPointer.ExtrinsicIndex
+		indexType = TxIndex
+		dataCommitment = blobPointer.BlobDataKeccak265H
+	}
+
+	if a.fallbackS3Service != nil {
+		var err error
+		blobData, err = a.fallbackS3Service.GetByHash(ctx, dataCommitment)
+		if err != nil {
+			log.Info("AvailInfo: ❌  failed to read data from fallback s3 storage, err: %w", err)
+			return nil, fmt.Errorf("AvailDAError: unable to read data from AvailDA & Fallback s3 storage")
+		}
+		log.Info("AvailInfo: ✅  Succesfully fetched data from Avail S3 using fallbackS3Service")
+	} else {
+		var err error
+		blobData, err = a.getData(blockNumber, index, indexType)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get data from block:%v", err)
 		}
-
-		unpackedData, err := byteArrayArguments.Unpack(blobData)
-		if err != nil {
-			return nil, fmt.Errorf("cannot decode data:%v", err)
-		}
-		var ok bool
-		resp, ok = unpackedData[0].([][]byte)
-		if !ok {
-			return nil, fmt.Errorf("cannot parse data")
-		}
+		log.Infof("AvailDAInfo: ✅ Successfully able to retreive the data from AvailDA")
 	}
 
-	log.Infof("AvailDAInfo: ✅ Successfully able to retreive the data from AvailDA")
+	unpackedData, err := byteArrayArguments.Unpack(blobData)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode data:%v", err)
+	}
+	var ok bool
+	resp, ok = unpackedData[0].([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("cannot parse data")
+	}
+
 	return resp, nil
 }
 
