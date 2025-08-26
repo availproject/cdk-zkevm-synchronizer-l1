@@ -3,9 +3,9 @@ package etherman
 import (
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/config/types"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability"
-	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/dataavailability/avail"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/translator"
 	"github.com/0xPolygonHermez/zkevm-synchronizer-l1/utils"
+	"github.com/availproject/cdk-avail-da-server/lib/avail"
 	"github.com/ethereum/go-ethereum/common"
 )
 
