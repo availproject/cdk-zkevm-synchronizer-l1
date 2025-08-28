@@ -27,6 +27,8 @@ github.com/availproject/cdk-avail-da-server v0.0.0-20250825105240-c01023b10f34 h
 github.com/availproject/cdk-avail-da-server v0.0.0-20250825105240-c01023b10f34/go.mod h1:o7In3D2KsGvH/dO0tRHzMLdqu7yP7sjzayEme3Of/4I=
 github.com/availproject/cdk-avail-da-server v0.0.0-20250826065333-68fa2189f41d h1:X4G6BPGtzg5PvoVfO1Xxq2JTOwkz43Me96zjfLCV03Y=
 github.com/availproject/cdk-avail-da-server v0.0.0-20250826065333-68fa2189f41d/go.mod h1:o7In3D2KsGvH/dO0tRHzMLdqu7yP7sjzayEme3Of/4I=
+github.com/availproject/cdk-avail-da-server v0.0.0-20250828042333-957c2c8cd35b h1:ztjIygj4JXDsCmzAq2G6BlKszwbzctwsdwlpG/m2724=
+github.com/availproject/cdk-avail-da-server v0.0.0-20250828042333-957c2c8cd35b/go.mod h1:o7In3D2KsGvH/dO0tRHzMLdqu7yP7sjzayEme3Of/4I=
 github.com/aws/aws-sdk-go-v2 v1.38.0 h1:UCRQ5mlqcFk9HJDIqENSLR3wiG1VTWlyUfLDEvY7RxU=
 github.com/aws/aws-sdk-go-v2 v1.38.0/go.mod h1:9Q0OoGQoboYIAJyslFyF1f5K1Ryddop8gqMhWx/n4Wg=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.0 h1:6GMWV6CNpA/6fbFHnoAjrv4+LGfyTqZz2LtCHnspgDg=
