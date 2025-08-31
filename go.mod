@@ -6,7 +6,7 @@ require (
 	github.com/0xPolygon/cdk-contracts-tooling v0.0.2-0.20241225094934-1d381f5703ef
 	github.com/0xPolygon/cdk-data-availability v0.0.12
 	github.com/0xPolygon/cdk-rpc v0.0.0-20241004114257-6c3cb6eebfb6
-	github.com/availproject/cdk-avail-da-server v0.0.0-20250831095542-a14f4428bdcf
+	github.com/availproject/cdk-avail-da-server v0.0.0-20250831121123-7ba0d8f370b5
 	github.com/ethereum/go-ethereum v1.16.2
 	github.com/hermeznetwork/tracerr v0.3.2
 	github.com/iden3/go-iden3-crypto v0.0.17
