@@ -6,7 +6,7 @@ require (
 	github.com/0xPolygon/cdk-contracts-tooling v0.0.2-0.20241225094934-1d381f5703ef
 	github.com/0xPolygon/cdk-data-availability v0.0.12
 	github.com/0xPolygon/cdk-rpc v0.0.0-20241004114257-6c3cb6eebfb6
-	github.com/availproject/cdk-avail-da-server v0.0.0-20250831052534-ccdc9d80de5d
+	github.com/availproject/cdk-avail-da-server v0.0.0-20250831095542-a14f4428bdcf
 	github.com/ethereum/go-ethereum v1.16.2
 	github.com/hermeznetwork/tracerr v0.3.2
 	github.com/iden3/go-iden3-crypto v0.0.17
@@ -19,7 +19,7 @@ require (
 	github.com/prometheus/client_model v0.6.1
 	github.com/rubenv/sql-migrate v1.7.1
 	github.com/spf13/viper v1.19.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.5
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.36.0
