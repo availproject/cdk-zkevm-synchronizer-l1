@@ -12,7 +12,7 @@ type Backend struct {
 }
 
 func New(l1RPCURL string, contractAddr common.Address, config avail.Config) (*Backend, error) {
-	backend, err := avail.New(l1RPCURL, contractAddr, config)
+	backend, err := avail.New(l1RPCURL, contractAddr, config, nil)
 	if err != nil {
 		return nil, err
 	}
